@@ -173,15 +173,19 @@ class CodeCardsRegistry:
         exact_index: dict[str, Path] = {}
         category_index: dict[str, Path] = {}
 
+        # Contrat recode-icd (docs/livraison/CONTRAT.md, format_version 1) :
+        # la colonne canonique du chemin est `fichier` ; `filepath` est le
+        # nom historique, accepté en repli pour les bibliothèques
+        # antérieures au contrat.
         for row in _read_index(exact_dir / "index.csv"):
             code = normalize_icd_code(row.get("code"))
-            filepath = row.get("filepath")
+            filepath = row.get("fichier") or row.get("filepath")
             if code and filepath:
                 exact_index[code] = exact_dir / filepath
 
         for row in _read_index(category_dir / "index.csv"):
             code = category_code(row.get("code"))
-            filepath = row.get("filepath")
+            filepath = row.get("fichier") or row.get("filepath")
             if code and filepath:
                 category_index[code] = category_dir / filepath
 
