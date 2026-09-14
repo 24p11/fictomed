@@ -212,10 +212,8 @@ class APHPPipeline(BasePipeline):
             scenario_fn=format_aphp_scenario,
             cancer_codes=sc_ctx.cancer_codes,
             atih_rules=atih_rules,
+            prompt_workflow=self.prompt_workflow,
         )
 
-        
-        return self._add_code_cards_to_prompts(df)
 
-      
-    
+        return self._add_code_cards_to_prompts(df)

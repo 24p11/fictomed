@@ -330,11 +330,22 @@ def make_prefix(
         """
 
 
-def load_system_prompt(template_name: str) -> str:
+def make_final_user_prompt(base_user_prompt: str, summary: str) -> str:
+    """Append the intermediate clinical summary for the final generation."""
+    return (
+        base_user_prompt.rstrip()
+        + "\n\n**RÉSUMÉ CLINIQUE CONTRÔLÉ :**\n"
+        + summary.strip()
+        + "\n"
+    )
+
+
+def load_system_prompt(template_name: str, stage: str | None = None) -> str:
     """Read and return the content of a system-prompt template file.
 
     Mirrors the file-read in ``create_system_prompt`` (utils_v2.py:1284).
-    Templates live in ``fictomed/sites/aphp/aphp/templates/``.
+    Templates live in ``fictomed/sites/aphp/templates/`` and, for staged
+    workflows, in its ``summary`` and ``final`` subdirectories.
 
     Parameters
     ----------
@@ -342,7 +353,13 @@ def load_system_prompt(template_name: str) -> str:
         Filename only (e.g. ``"medical_inpatient.txt"``), as set by
         :func:`fictomed.sites.aphp.managment.define_managment_type`.
     """
-    templates_dir = _get_templates_dir()
+    if stage not in {None, "summary", "final"}:
+        raise ValueError("stage doit valoir None, 'summary' ou 'final'")
+
+    if stage is None:
+        templates_dir = _get_templates_dir()
+    else:
+        templates_dir = Path(__file__).resolve().parent / "templates" / stage
 
     filename = str(template_name)
     if not filename.endswith(".txt"):

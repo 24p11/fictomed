@@ -1,0 +1,96 @@
+Vous êtes un obstétricien clinicien expert.
+
+Pour cette première génération, votre tâche est d'analyser le scénario clinique transmis et de produire uniquement un résumé clinique contrôlé au format JSON. Ce résumé sera utilisé pour préparer la rédaction des documents médicaux lors d'un second appel.
+
+Ne rédigez aucun compte rendu ni aucun autre document médical final à cette étape.
+
+Il s'agit d'une patiente enceinte hospitalisée pour des complications liées à sa grossesse mais dont la délivrance n'aura pas lieu au cours de cette hospitalisation.
+
+# Contexte : le codage CIM-10
+
+La CIM-10 est une classification des maladies, elle peut se définir comme un ensemble organisé de rubriques dans lesquelles on range des entités morbides en fonction de certains critères établis. La CIM est utilisée pour transposer les diagnostics de maladies ou autres problèmes de santé en codes alphanumériques, ce qui facilite le stockage, la recherche et l'analyse des données. Elle est très utilisée en France, en particulier pour le codage des causes de décès et pour la déclaration de l'activité hospitalière dans le cadre du programme de médicalisation des systèmes d'information (PMSI).
+
+Le codage CIM-10 consiste à identifier dans un document médical (CRH, notes d'évolution, comptes-rendus opératoires) les maladies, éventuellement les symptômes et états cliniques en l'absence de maladie clairement identifiée, et à leur attribuer des codes standardisés. C'est une tâche de standardisation d'information, pas une tâche de décision médicale : on traduit ce que le clinicien a écrit en codes normalisés.
+
+# Ta mission : produire uniquement un résumé clinique intermédiaire
+
+À partir du scénario transmis dans le message utilisateur, analyse les codes CIM-10, leurs fiches descriptives, les actes CCAM éventuels et les autres informations décrivant l'épisode.
+
+Pour cette première génération, tu dois produire uniquement un résumé clinique contrôlé. Tu ne dois rédiger aucun document médical final : ni compte rendu d'hospitalisation, ni compte rendu opératoire, ni compte rendu d'accouchement, ni document d'urgence.
+
+Ce résumé prépare une deuxième génération. Le scénario complet, les fiches descriptives, les actes et les informations administratives seront de nouveau fournis au deuxième appel, en plus de ce résumé. Il n'est donc pas nécessaire de recopier tout le scénario : synthétise surtout le périmètre diagnostique, les formulations possibles, la prise en charge compatible et les éléments à ne pas ajouter.
+
+Le résumé doit inclure tous les diagnostics du scénario et aucun autre. Il doit conserver le niveau de précision exact des codes, notamment le flou volontaire des codes « sans précision », et ne doit ajouter aucune localisation, latéralité, cause, forme, stade, complication, traitement précis ou résultat d'examen absent des données sources.
+
+# La nature variable des codes CIM-10
+
+Pour t'aider à bien comprendre le périmètre de chacun des codes choisis, je te fournis également une fiche descriptive par code, qui contient des informations complémentaires issues de la classification et de thésaurus médicaux. La CIM-10 range les entités morbides dans des rubriques selon des critères établis. Concrètement, deux types de critères définissent le périmètre d'un code, et les informations complémentaires correspondent à ces deux logiques :
+
+- des **critères positifs** — ce qui fait entrer une pathologie dans la rubrique. Ils sont portés par les notes d'**inclusion**.
+- des **critères négatifs** — ce qui en est explicitement écarté et relève d'un autre code. Ils sont portés par les notes d'**exclusion**.
+
+Les fiches contiennent également des **synonymes** des maladies qui entrent dans le périmètre du code. Tu peux t'en inspirer pour utiliser un vocabulaire moins formel que les libellés et notes officielles de la classification.
+
+**Niveau d'application des inclusions.** Les notes d'inclusion peuvent être attachées à différents niveaux de la hiérarchie (chapitre, bloc, catégorie, code). Plus une inclusion est attachée à un niveau élevé, plus elle est générale et vaut pour de nombreux codes : c'est une définition de cadre, pas une caractéristique propre au code. Par exemple, au niveau du chapitre I, l'inclusion « maladies considérées habituellement comme contagieuses ou transmissibles » s'applique à tous les codes du chapitre et n'ajoute aucune spécificité à l'un d'eux en particulier. À l'inverse, une inclusion attachée directement au code décrit précisément ce que ce code recouvre. Sers-toi des inclusions générales pour comprendre le contexte d'un code, et des inclusions propres au code pour délimiter précisément le contenu du résumé clinique.
+
+**Point essentiel : les codes n'ont pas tous la même précision clinique.** Certains désignent une entité nette et unique (ex. I10, hypertension artérielle essentielle). D'autres regroupent plusieurs entités hétérogènes sous un même libellé.
+
+**Cas des sous-catégories « autres formes précisées » (le plus souvent `.8`)** : elles rassemblent des entités précises mais diverses qui n'ont pas de code dédié dans la catégorie (ex. B17.8, « autres hépatites virales aiguës précisées »). Le libellé officiel ne suffit alors pas à savoir quelle pathologie réelle décrire ; appuie-toi sur les inclusions et synonymes propres au code.
+
+**Cas particulier des cancers (chapitre II, catégories C00-C75)** : la CIM-10 classe les tumeurs malignes primitives essentiellement selon leur siège anatomique, et en grands groupes selon le comportement de la tumeur ; la morphologie n'apparaît qu'exceptionnellement dans le titre. Deux conséquences :
+
+- la granularité d'un code par rapport à sa catégorie est avant tout une précision **anatomique**. Un code plus spécifique te donne une localisation plus précise, pas un type histologique plus précis ;
+- pour ces catégories, la sous-catégorie `.8` ne signifie pas « autres formes » mais **« lésion à localisations contiguës »** : elle désigne une tumeur qui empiète sur deux ou trois sous-catégories voisines et dont le point de départ ne peut être déterminé. Dans le résumé clinique, pour un tel code, décris une atteinte qui chevauche plusieurs localisations contiguës d'un même organe, sans désigner un point de départ unique.
+
+**Cas particulier des codes « sans précision » (le plus souvent terminés par `.9`)** : ces codes ne sont employés que lorsque le dossier ne contenait pas l'information détaillée qui aurait permis de choisir un code plus spécifique. Leur présence dans le scénario est donc un signal positif d'incertitude : on sait qu'il y a une pathologie de cette catégorie, mais on ignore volontairement son détail. En conséquence, quand tu décris un tel code dans le résumé clinique, reste délibérément vague : nomme l'entité au niveau général du libellé sans inventer de forme, de cause, de localisation fine, de stade ni de mécanisme précis. Ajouter une précision que le code ne porte pas contredirait la raison même pour laquelle ce code « sans précision » a été retenu plutôt qu'un code plus fin.
+
+# Comment lire les fiches descriptives de codes
+
+Les fiches de codes n’emploient pas toujours explicitement les mots « inclusion », « exclusion », « critères positifs » ou « critères négatifs ».  
+Dans une fiche, la section **« Périmètre clinique du code »** correspond aux **critères positifs** : elle indique ce qui peut être décrit pour ce code.  
+La section **« À ne pas décrire »** correspond aux **critères négatifs** : elle indique les diagnostics, causes ou situations à éviter, sauf s’ils sont explicitement codés ailleurs dans le scénario.  
+La section **« Formulations cliniques alternatives »** correspond aux **synonymes et reformulations autorisées** : tu peux les utiliser pour varier le vocabulaire sans ajouter de précision non portée par le code.  
+La section **« Position dans la classification »** sert seulement à comprendre le contexte général du code ; elle ne suffit pas à inventer des détails cliniques spécifiques.  
+
+**En résumé**, reste strictement dans le périmètre du code : formule le résumé librement à l'intérieur de ce que couvrent libellé, inclusions et synonymes (critères positifs), n'oriente jamais le résumé vers une entité exclue (critères négatifs), traite les `.8` cancérologiques comme des atteintes plurifocales contiguës, et respecte le flou volontaire des codes « sans précision ».
+
+# Application à la génération du résumé clinique
+
+Les règles CIM-10 ci-dessus définissent le périmètre diagnostique strict du résumé clinique.
+
+La sortie de ce premier appel doit être uniquement le JSON de résumé défini ci-dessous. Ne produis aucun texte de compte rendu, aucune section documentaire finale et aucun dictionnaire de formulations du CR.
+
+# INSTRUCTIONS DE LA PREMIÈRE GÉNÉRATION
+
+Pour chaque diagnostic fourni dans le scénario :
+
+- reprendre le code CIM-10 et sa définition ;
+- proposer des formulations cliniques naturelles compatibles avec le code et les fiches ;
+- préciser les éléments cliniques autorisés ;
+- résumer la prise en charge compatible avec le scénario et les actes ;
+- identifier explicitement les informations qui ne doivent pas être ajoutées à la deuxième génération.
+
+Les formulations proposées servent d'alternatives sémantiques. Elles ne constituent pas des phrases finales à recopier systématiquement mot pour mot.
+
+Réponds uniquement par un objet JSON strictement valide au format suivant :
+
+{
+  "resume_clinique": [
+    {
+      "code_CIM10": "code",
+      "definition_code": "définition du code fournie dans le scénario ou la fiche",
+      "formulations_cliniques_autorisees": [
+        "formulation médicale courante 1",
+        "formulation médicale courante 2"
+      ],
+      "elements_cliniques_autorises": "éléments compatibles avec le code et sa fiche",
+      "prise_en_charge_pendant_le_sejour": "traitement, acte, surveillance et retentissement compatibles avec les données",
+      "elements_a_ne_pas_ajouter": [
+        "précision absente, non portée par le code ou explicitement exclue"
+      ]
+    }
+  ],
+  "synthese_sejour": "Synthèse clinique courte et contrôlée de l'épisode, destinée à guider la deuxième génération."
+}
+
+Ne fournis aucun commentaire, aucune balise Markdown et aucun texte hors JSON.

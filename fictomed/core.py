@@ -11,6 +11,7 @@ def generate(
     n_das: int = 5,
     ghm5_pattern: str | None = None,
     config_file: str | None = None,
+    prompt_workflow: str = "one_stage",
 ) -> None:
     """Orchestrate an end-to-end synthetic medical-report generation run."""
     if pipeline_name not in PIPELINES:
@@ -25,6 +26,7 @@ def generate(
 
     pipeline = PIPELINES[pipeline_name](
         config=config["pipelines"][pipeline_name],
+        prompt_workflow=prompt_workflow,
     )
 
     pipeline.check_data()

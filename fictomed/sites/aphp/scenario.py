@@ -571,6 +571,7 @@ def format_aphp_scenario(
     df: pl.DataFrame,
     cancer_codes: frozenset[str],
     atih_rules: dict[str, dict],
+    prompt_workflow: str = "one_stage",
 ) -> pl.DataFrame:
     """AP-HP-specific scenario formatting.
 
@@ -584,22 +585,48 @@ def format_aphp_scenario(
     from fictomed.sites.aphp import prompt
 
     user_prompts: list[str] = []
+    if prompt_workflow not in {"one_stage", "two_stage"}:
+        raise ValueError(
+            "prompt_workflow doit valoir 'one_stage' ou 'two_stage'"
+        )
+
     system_prompts: list[str] = []
     prefixes: list[str] = []
+    summary_system_prompts: list[str] = []
+    final_system_prompts: list[str] = []
 
     for row in df.iter_rows(named=True):
         user_prompt = prompt.make_user_prompt(row, cancer_codes, atih_rules)
-        system_prompt = prompt.load_system_prompt(row["template_name"])
         prefix = prompt.make_prefix(row, cancer_codes)
 
         user_prompts.append(user_prompt)
-        system_prompts.append(system_prompt)
         prefixes.append(prefix)
+        if prompt_workflow == "one_stage":
+            system_prompts.append(prompt.load_system_prompt(row["template_name"]))
+        else:
+            summary_system_prompts.append(
+                prompt.load_system_prompt(row["template_name"], stage="summary")
+            )
+            final_system_prompts.append(
+                prompt.load_system_prompt(row["template_name"], stage="final")
+            )
 
-    return df.with_columns(
+    common_columns = [
         pl.Series("scenario", user_prompts, dtype=pl.Utf8),
         pl.Series("user_prompt", user_prompts, dtype=pl.Utf8),
-        pl.Series("system_prompt", system_prompts, dtype=pl.Utf8),
-        pl.Series("prefix", prefixes, dtype=pl.Utf8),
-        pl.Series("prefix_len", [len(p) for p in prefixes], dtype=pl.Int64),
+    ]
+    if prompt_workflow == "one_stage":
+        return df.with_columns(
+            *common_columns,
+            pl.Series("system_prompt", system_prompts, dtype=pl.Utf8),
+            pl.Series("prefix", prefixes, dtype=pl.Utf8),
+            pl.Series("prefix_len", [len(p) for p in prefixes], dtype=pl.Int64),
+        )
+
+    return df.with_columns(
+        *common_columns,
+        pl.Series("summary_system_prompt", summary_system_prompts, dtype=pl.Utf8),
+        pl.Series("summary_prefix", [""] * df.height, dtype=pl.Utf8),
+        pl.Series("final_system_prompt", final_system_prompts, dtype=pl.Utf8),
+        pl.Series("final_prefix", prefixes, dtype=pl.Utf8),
     )

@@ -23,8 +23,17 @@ class BasePipeline(ABC):
 
     name: str = "base"
 
-    def __init__(self, config: dict) -> None:
+    def __init__(
+        self,
+        config: dict,
+        prompt_workflow: str = "one_stage",
+    ) -> None:
         self.config = config
+        if prompt_workflow not in {"one_stage", "two_stage"}:
+            raise ValueError(
+                "prompt_workflow doit valoir 'one_stage' ou 'two_stage'"
+            )
+        self.prompt_workflow = prompt_workflow
 
     @abstractmethod
     def check_data(self) -> None:
