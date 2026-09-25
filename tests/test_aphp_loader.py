@@ -139,6 +139,45 @@ def test_rename_mappings_have_no_source_as_target() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Renommage des colonnes de profils
+# ---------------------------------------------------------------------------
+
+
+def test_old_format_profile_is_fully_renamed() -> None:
+    """Ancien format : tous les renommages s'appliquent, dont age→cage,
+    agean→age2 et n→nb."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        _write_parquet(d / "scenarios_bn_all_20260128.pq", _old_format_profile(), time.time())
+        lf = L._scan_profiles(d)
+        cols = lf.collect_schema().names()
+        assert cols == ["drg_parent_code", "cage", "age2", "nb", "los", "admission_type"], cols
+        row = lf.collect().row(0, named=True)
+        assert row["cage"] == "ge_18" and row["age2"] == 42 and row["nb"] == 7
+
+
+def test_c1_profile_keeps_cage_and_age_without_duplicate_error() -> None:
+    """Profil avec ``age`` ET ``cage`` : ``cage`` préservé, ``age`` intact,
+    aucun DuplicateError, et les autres renommages toujours appliqués."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        _write_parquet(d / "scenarios_C1_dp.parquet", _c1_format_profile(), time.time())
+        lf = L._scan_profiles(d)
+        cols = lf.collect_schema().names()  # DuplicateError se lèverait ici
+        assert cols == ["drg_parent_code", "age", "cage", "los", "admission_type"], cols
+        row = lf.collect().row(0, named=True)
+        assert row["cage"] == "[40-50[" and row["age"] == "42"
+
+
+def test_safe_rename_skips_only_colliding_pairs() -> None:
+    """Unitaire sur ``_safe_rename`` : source absente -> ignorée ; cible déjà
+    présente -> ignorée ; les autres paires sont renommées."""
+    lf = pl.LazyFrame({"a": [1], "b": [2], "x": [3]})
+    out = L._safe_rename(lf, {"a": "x", "b": "y", "zz": "w"})
+    assert out.collect_schema().names() == ["a", "y", "x"]
+
+
+# ---------------------------------------------------------------------------
 # Exécution directe (sans pytest)
 # ---------------------------------------------------------------------------
 
