@@ -219,8 +219,12 @@ def load_atih_rules() -> dict[str, dict]:
 # PMSI input data (user-provided, in self.config["data"]["input"])
 # ---------------------------------------------------------------------------
 
+# Chaque motif porte une extension : un motif nu (``scenarios_*``) attrapait
+# aussi les rapports texte déposés à côté des profils (``scenarios_C1_dp.rapport.txt``)
+# et les faisait passer pour « le fichier de profils le plus récent ».
+# ``.pq`` est l'extension historique des profils (``scenarios_bn_all_*.pq``).
 _PMSI_PATTERNS: dict[str, tuple[str, ...]] = {
-    "profiles": ("scenarios_*.parquet", "scenarios_*"),
+    "profiles": ("scenarios_*.parquet", "scenarios_*.pq"),
     "secondary_icd": ("bn_pmsi_related_diag_*.csv",),
     "procedures": ("bn_pmsi_procedures_*.csv",),
 }
